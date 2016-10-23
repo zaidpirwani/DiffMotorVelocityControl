@@ -66,8 +66,10 @@ void setup() {
   pidR.SetOutputLimits(0,255);
 }
 
-unsigned int debugCount=0;
+void(* resetFunc) (void) = 0;//declare reset function at address 0
 
+unsigned int debugCount=0;
+int zp=0;
 void loop() {
   if (stringComplete) {
     interpretSerialData();
@@ -125,13 +127,17 @@ void loop() {
   }
   
   // DEBUG COMMANDS TO CHECK ACTUAL ROBOT BEHAVIOUR
-  if(millis()>10000){
+  if(millis()>20000 && zp==0){
     inputString = "D,20,20\n";
     stringComplete=true;
-  }else if(millis()>20000){
+    zp=1;
+  }else if(millis()>30000 && zp==1){
     inputString = "L,0,0\n";
     stringComplete=true;
-    }
+    zp=2;
+  }else if(millis()>50000 && zp==2){
+    resetFunc();
+  }
 }
 
 void interpretSerialData(void){
