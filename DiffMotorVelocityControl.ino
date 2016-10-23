@@ -1,5 +1,5 @@
 //H,1,1.5,0.1,1/2
-#define DEBUG 1
+#define DEBUG 0
 #define MAGICADDRESS 7
 // randomly(or is it!) defined eeprom 42 address
 
@@ -14,7 +14,7 @@
 
 #include <Encoder.h>
 Encoder encL(3,5);
-  Encoder encR(2,4);
+Encoder encR(2,4);
 
 #include "MusafirMotor.h"
 MusafirMotor motorL(6, 7, 9);
@@ -32,7 +32,7 @@ const float circumference = 2 * M_PI * wheel_radius;
 const float tickDistance = (float)circumference/1500.0;
 
 unsigned long previousMillis = 0;
-const long interval = 50;
+const long interval = 10;
 
 String inputString = "";         // a string to hold incoming data
 boolean stringComplete = false;  // whether the string is complete
@@ -60,8 +60,8 @@ void setup() {
   pidR.SetMode(MANUAL);
   pidL.SetTunings(motorPIDL.kp, motorPIDL.ki, motorPIDL.kd);
   pidR.SetTunings(motorPIDR.kp, motorPIDR.ki, motorPIDR.kd);
-  pidL.SetSampleTime(interval*5);      // sample time for PID
-  pidR.SetSampleTime(interval*5);
+  pidL.SetSampleTime(interval);      // sample time for PID
+  pidR.SetSampleTime(interval);
   pidL.SetOutputLimits(0,255);  // min/max PWM
   pidR.SetOutputLimits(0,255);
 }
@@ -124,19 +124,6 @@ void loop() {
     else motorL.setPWM(0);
     if(vel2>0) motorR.setPWM(pwm2);
     else motorR.setPWM(0);
-  }
-  
-  // DEBUG COMMANDS TO CHECK ACTUAL ROBOT BEHAVIOUR
-  if(millis()>20000 && zp==0){
-    inputString = "D,20,20\n";
-    stringComplete=true;
-    zp=1;
-  }else if(millis()>30000 && zp==1){
-    inputString = "L,0,0\n";
-    stringComplete=true;
-    zp=2;
-  }else if(millis()>50000 && zp==2){
-    resetFunc();
   }
 }
 
