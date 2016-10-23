@@ -1,4 +1,4 @@
-#define DEBUG 0
+#define DEBUG 1
 #define MAGICADDRESS 7
 // randomly(or is it!) defined eeprom 42 address
 
@@ -12,12 +12,12 @@
 #include <EEPROM.h>
 
 #include <Encoder.h>
-Encoder encL(2,4);
-Encoder encR(3,5);
+Encoder encL(3,5);
+  Encoder encR(2,4);
 
 #include "MusafirMotor.h"
-MusafirMotor motorL(13, 12, 10);
-MusafirMotor motorR(6, 7, 9);
+MusafirMotor motorL(6, 7, 9);
+MusafirMotor motorR(12, 13, 10);
 struct motorParams {
   double kp;
   double ki;
@@ -31,7 +31,7 @@ const float circumference = 2 * M_PI * wheel_radius;
 const float tickDistance = (float)circumference/1500.0;
 
 unsigned long previousMillis = 0;
-const long interval = 100;
+const long interval = 10;
 
 String inputString = "";         // a string to hold incoming data
 boolean stringComplete = false;  // whether the string is complete
@@ -59,11 +59,13 @@ void setup() {
   pidR.SetMode(MANUAL);
   pidL.SetTunings(motorPIDL.kp, motorPIDL.ki, motorPIDL.kd);
   pidR.SetTunings(motorPIDR.kp, motorPIDR.ki, motorPIDR.kd);
-  pidL.SetSampleTime(250);      // sample time for PID
-  pidR.SetSampleTime(250);
-  pidL.SetOutputLimits(0,200);  // min/max PWM
-  pidR.SetOutputLimits(0,200);
+  pidL.SetSampleTime(interval*5);      // sample time for PID
+  pidR.SetSampleTime(interval*5);
+  pidL.SetOutputLimits(0,250);  // min/max PWM
+  pidR.SetOutputLimits(0,250);
 }
+
+unsigned int debugCount=0;
 
 void loop() {
   if (stringComplete) {
@@ -75,35 +77,46 @@ void loop() {
   unsigned long currentMillis = millis();
   if (currentMillis - previousMillis >= interval) {
     previousMillis = currentMillis;
-
     long encCurr1 = encL.read();
     long encCurr2 = encR.read();
     resetEncoders();
 
     float distance1 = (float)encCurr1*tickDistance;
-    float spd1 = (float)distance1*(1000.0/interval);
+    spd1 = (float)distance1*(1000.0/interval);
     float distance2 = (float)encCurr2*tickDistance;
-    float spd2 = (float)distance2*(1000.0/interval);
-    if(DEBUG){
-      Serial.print(encCurr1);
-      Serial.print(", ");
-      Serial.print(distance1);
-      Serial.print(", ");
-      Serial.print(spd1);
+    spd2 = (float)distance2*(1000.0/interval);
+
+    debugCount++;
+    if(DEBUG && debugCount%50==0){
+//      Serial.print(encCurr1);
+//      Serial.print(", ");
+//      Serial.print(distance1);
+//      Serial.print(", ");
+      Serial.print(pidActive);
       Serial.print(" - ");
-      Serial.print(encCurr2);
+      Serial.print(spd1);
       Serial.print(", ");
-      Serial.print(distance2);
+      Serial.print(vel1);
       Serial.print(", ");
-      Serial.println(spd2);
+      Serial.print(pwm1);
+      Serial.print(" - ");
+//      Serial.print(encCurr2);
+//      Serial.print(", ");
+//      Serial.print(distance2);
+//      Serial.print(", ");
+      Serial.print(spd2);
+      Serial.print(", ");
+      Serial.print(vel2);
+      Serial.print(", ");
+      Serial.print(pwm2);
+      Serial.println();
     }
   }
-  
   pidL.Compute();
   pidR.Compute();
   if(pidActive){
-    motorL.setPWM(pwm1);
-    motorR.setPWM(pwm2);
+    if(vel1>0) motorL.setPWM(pwm1);
+    if(vel2>0) motorR.setPWM(pwm2);
   }
 }
 
@@ -131,8 +144,14 @@ void interpretSerialData(void){
           Serial.println(vel2);
         }         
         Serial.println('d');
-        pidL.SetMode(AUTOMATIC);
-        pidR.SetMode(AUTOMATIC);
+        if(vel1>0)
+          pidL.SetMode(AUTOMATIC);
+        else
+          pidL.SetMode(MANUAL);
+        if(vel2>0)
+          pidR.SetMode(AUTOMATIC);
+        else
+          pidR.SetMode(MANUAL);
         pidActive= true;
         break;
       case 'H':
