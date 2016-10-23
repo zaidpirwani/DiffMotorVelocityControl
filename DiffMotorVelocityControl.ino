@@ -25,8 +25,6 @@ struct motorParams {
 };
 motorParams motorPIDL;
 motorParams motorPIDR;
-int vel1 = 0, vel2 = 0;
-boolean pidActive= false;
 
 const float wheel_radius = 3.35; // in cm
 const float circumference = 2 * M_PI * wheel_radius;
@@ -38,15 +36,33 @@ const long interval = 100;
 String inputString = "";         // a string to hold incoming data
 boolean stringComplete = false;  // whether the string is complete
 
+#include <PID_v1.h>
+double vel1 = 0, vel2 = 0;
+double spd1, spd2;
+double pwm1, pwm2;
+PID pidL(&spd1, &pwm1, &vel1, 1,0,0, DIRECT);
+PID pidR(&spd2, &pwm2, &vel2, 1,0,0, DIRECT);
+boolean pidActive= false;
+
 void setup() {
   Serial.begin(115200);
   inputString.reserve(100);
+  
   encL.write(0);
   encR.write(0);
   motorL.setDir(FORWARD);
   motorR.setDir(FORWARD);
 
   initEEPROM();
+
+  pidL.SetMode(MANUAL);       // PID CONTROL OFF
+  pidR.SetMode(MANUAL);
+  pidL.SetTunings(motorPIDL.kp, motorPIDL.ki, motorPIDL.kd);
+  pidR.SetTunings(motorPIDR.kp, motorPIDR.ki, motorPIDR.kd);
+  pidL.SetSampleTime(250);      // sample time for PID
+  pidR.SetSampleTime(250);
+  pidL.SetOutputLimits(0,200);  // min/max PWM
+  pidR.SetOutputLimits(0,200);
 }
 
 void loop() {
@@ -65,20 +81,29 @@ void loop() {
     resetEncoders();
 
     float distance1 = (float)encCurr1*tickDistance;
-    float velocity1 = (float)distance1*(1000.0/interval);
+    float spd1 = (float)distance1*(1000.0/interval);
     float distance2 = (float)encCurr2*tickDistance;
-    float velocity2 = (float)distance2*(1000.0/interval);
-    Serial.print(encCurr1);
-    Serial.print(", ");
-    Serial.print(distance1);
-    Serial.print(", ");
-    Serial.print(velocity1);
-    Serial.print(" - ");
-    Serial.print(encCurr2);
-    Serial.print(", ");
-    Serial.print(distance2);
-    Serial.print(", ");
-    Serial.println(velocity2);  
+    float spd2 = (float)distance2*(1000.0/interval);
+    if(DEBUG){
+      Serial.print(encCurr1);
+      Serial.print(", ");
+      Serial.print(distance1);
+      Serial.print(", ");
+      Serial.print(spd1);
+      Serial.print(" - ");
+      Serial.print(encCurr2);
+      Serial.print(", ");
+      Serial.print(distance2);
+      Serial.print(", ");
+      Serial.println(spd2);
+    }
+  }
+  
+  pidL.Compute();
+  pidR.Compute();
+  if(pidActive){
+    motorL.setPWM(pwm1);
+    motorR.setPWM(pwm2);
   }
 }
 
@@ -106,6 +131,8 @@ void interpretSerialData(void){
           Serial.println(vel2);
         }         
         Serial.println('d');
+        pidL.SetMode(AUTOMATIC);
+        pidR.SetMode(AUTOMATIC);
         pidActive= true;
         break;
       case 'H':
@@ -126,6 +153,7 @@ void interpretSerialData(void){
           motorPIDL.kp = p;
           motorPIDL.ki = i;
           motorPIDL.kd = d;
+          pidL.SetTunings(motorPIDL.kp, motorPIDL.ki, motorPIDL.kd);
           EEPROM.put((const int)MAGICADDRESS, motorPIDL);
           if(DEBUG) Serial.println("motorPIDL ");
         }
@@ -133,6 +161,7 @@ void interpretSerialData(void){
           motorPIDR.kp = p;
           motorPIDR.ki = i;
           motorPIDR.kd = d;
+          pidR.SetTunings(motorPIDR.kp, motorPIDR.ki, motorPIDR.kd);
           EEPROM.put((const int)(MAGICADDRESS+sizeof(motorParams)), motorPIDR);
           if(DEBUG) Serial.println("motorPIDR ");
         }
@@ -156,6 +185,8 @@ void interpretSerialData(void){
         if(val2<0) { motorR.setDir(BACKWARD); val2 = -val2; }
         else         motorR.setDir(FORWARD);
         pidActive= false;
+        pidL.SetMode(MANUAL);
+        pidR.SetMode(MANUAL);
         motorL.setPWM(val1);
         motorR.setPWM(val2);
         if(DEBUG){
