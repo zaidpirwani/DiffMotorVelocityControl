@@ -1,3 +1,4 @@
+//H,1,1.5,0.1,1/2
 #define DEBUG 1
 #define MAGICADDRESS 7
 // randomly(or is it!) defined eeprom 42 address
@@ -31,7 +32,7 @@ const float circumference = 2 * M_PI * wheel_radius;
 const float tickDistance = (float)circumference/1500.0;
 
 unsigned long previousMillis = 0;
-const long interval = 10;
+const long interval = 50;
 
 String inputString = "";         // a string to hold incoming data
 boolean stringComplete = false;  // whether the string is complete
@@ -61,8 +62,8 @@ void setup() {
   pidR.SetTunings(motorPIDR.kp, motorPIDR.ki, motorPIDR.kd);
   pidL.SetSampleTime(interval*5);      // sample time for PID
   pidR.SetSampleTime(interval*5);
-  pidL.SetOutputLimits(0,250);  // min/max PWM
-  pidR.SetOutputLimits(0,250);
+  pidL.SetOutputLimits(0,255);  // min/max PWM
+  pidR.SetOutputLimits(0,255);
 }
 
 unsigned int debugCount=0;
@@ -87,26 +88,28 @@ void loop() {
     spd2 = (float)distance2*(1000.0/interval);
 
     debugCount++;
-    if(DEBUG && debugCount%50==0){
+    if(DEBUG && (debugCount%10==0)){
 //      Serial.print(encCurr1);
 //      Serial.print(", ");
 //      Serial.print(distance1);
 //      Serial.print(", ");
-      Serial.print(pidActive);
-      Serial.print(" - ");
       Serial.print(spd1);
       Serial.print(", ");
-      Serial.print(vel1);
+//      Serial.print(vel1);
+//      Serial.print(", ");
+      Serial.print(vel1-spd1);
       Serial.print(", ");
       Serial.print(pwm1);
-      Serial.print(" - ");
+      Serial.print(" | ");
 //      Serial.print(encCurr2);
 //      Serial.print(", ");
 //      Serial.print(distance2);
 //      Serial.print(", ");
       Serial.print(spd2);
       Serial.print(", ");
-      Serial.print(vel2);
+//      Serial.print(vel2);
+//      Serial.print(", ");
+      Serial.print(vel2-spd2);
       Serial.print(", ");
       Serial.print(pwm2);
       Serial.println();
@@ -116,8 +119,19 @@ void loop() {
   pidR.Compute();
   if(pidActive){
     if(vel1>0) motorL.setPWM(pwm1);
+    else motorL.setPWM(0);
     if(vel2>0) motorR.setPWM(pwm2);
+    else motorR.setPWM(0);
   }
+  
+  // DEBUG COMMANDS TO CHECK ACTUAL ROBOT BEHAVIOUR
+  if(millis()>10000){
+    inputString = "D,20,20\n";
+    stringComplete=true;
+  }else if(millis()>20000){
+    inputString = "L,0,0\n";
+    stringComplete=true;
+    }
 }
 
 void interpretSerialData(void){
