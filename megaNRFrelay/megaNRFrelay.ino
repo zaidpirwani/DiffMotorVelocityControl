@@ -38,6 +38,7 @@ char serialBuffer[31] = "";
 
 void setup(void) {
  Serial.begin(115200);  
+ Serial3.begin(115200);  
  Serial.println("TESTING");
   radio.begin();
   
@@ -106,6 +107,7 @@ void nRF_receive(void) {
     
     Serial.print("R:");
     Serial.println(RecvPayload);
+    Serial3.println(RecvPayload);
     RecvPayload[0] = 0;  // Clear the buffers
   }  
 }
