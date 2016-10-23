@@ -23,7 +23,7 @@ for next payload to be sent out sequentially.
 
 
 // RF24 radio(CE,CSN);
-RF24 radio(49,47);
+RF24 radio(9,10);
 
 const uint64_t pipes[2] = { 0xDEDEDEDEE8LL, 0xDEDEDEDEE4LL };
 
