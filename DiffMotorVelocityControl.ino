@@ -1,4 +1,4 @@
-#define DEBUG 1
+#define DEBUG 0
 #define MAGICADDRESS 7
 // randomly(or is it!) defined eeprom 42 address
 
@@ -187,8 +187,10 @@ void interpretSerialData(void){
         pidActive= false;
         pidL.SetMode(MANUAL);
         pidR.SetMode(MANUAL);
-        motorL.setPWM(val1);
-        motorR.setPWM(val2);
+        pwm1 = val1;
+        pwm2 = val2;
+        motorL.setPWM(pwm1);
+        motorR.setPWM(pwm2);
         if(DEBUG){
           Serial.print("PWM1: "); Serial.println(val1);        
           Serial.print("PWM2: "); Serial.println(val2);
@@ -242,4 +244,19 @@ void initEEPROM(void){
 void resetEncoders(void){
   encL.write(0);
   encR.write(0);
+}
+
+void serialEvent() 
+{
+  while (Serial.available()) {
+    // get the new byte:
+    char inChar = (char)Serial.read();
+    // add it to the inputString:
+    inputString += inChar;
+    // if the incoming character is a newline, set a flag
+    // so the main loop can do something about it:
+    if (inChar == '\n') {
+      stringComplete = true;
+    }
+  }
 }
