@@ -41,6 +41,7 @@ boolean stringComplete = false;  // whether the string is complete
 double vel1 = 0, vel2 = 0;
 double spd1, spd2;
 double pwm1, pwm2;
+// PID (&input, &output, &setpoint, kp, ki, kd, DIRECT/REVERSE)
 PID pidL(&spd1, &pwm1, &vel1, 1,0,0, DIRECT);
 PID pidR(&spd2, &pwm2, &vel2, 1,0,0, DIRECT);
 boolean pidActive= false;
